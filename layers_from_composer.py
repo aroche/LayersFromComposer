@@ -135,6 +135,9 @@ class LayersFromComposer:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = LayersFromComposerDialog()
+        
+        # signals
+        self.dlg.comboBox.currentIndexChanged.connect(self.populate_maps)
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -196,8 +199,21 @@ class LayersFromComposer:
                 hasLockedLayers = hasLockedLayers or theMap.keepLayerSet()
             if hasLockedLayers:
                 self.dlg.comboBox.insertItem(i, composer.composerWindow().windowTitle())
+                
+    def populate_maps(self):
+        """ Gets the maps for the selected composer and populates second combobox """
+        composition = self.getSelectedComposer().composition()
+        if composition is None:
+            return
+        maps = composition.composerMapItems()
+        self.dlg.comboBox_2.clear()
+        for map_ in maps:
+            if map_.keepLayerSet():
+                self.dlg.comboBox_2.addItem(map_.displayName(), map_.id())
+                  
             
-    def getComposerByName(self, name):
+    def getSelectedComposer(self):
+        name = self.dlg.comboBox.currentText()
         for composer in self.iface.activeComposers():
             if composer.composerWindow().windowTitle() == name:
                 return composer
@@ -212,12 +228,11 @@ class LayersFromComposer:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            composerName = self.dlg.comboBox.currentText()
-            composition = self.getComposerByName(composerName).composition()
-            maps = composition.composerMapItems()
-            theMap = maps[0] #  to be changed with a user choice
+            mapId= self.dlg.comboBox_2.itemData(self.dlg.comboBox_2.currentIndex())
+            theMap = self.getSelectedComposer().composition().getComposerMapById(mapId)
             layers = theMap.layerSet()
             for lyr in self.iface.legendInterface().layers():
                 self.iface.legendInterface().setLayerVisible(lyr, lyr.id() in layers)
+
                    
-            
+# TODO: allow choice for style updating
