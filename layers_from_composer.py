@@ -22,6 +22,7 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon, QMessageBox
+from PyQt4.QtXml import QDomDocument
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
@@ -138,6 +139,7 @@ class LayersFromComposer:
         
         # signals
         self.dlg.comboBox.currentIndexChanged.connect(self.populate_maps)
+        self.dlg.comboBox_2.currentIndexChanged.connect(self.enable_style_check)
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -210,6 +212,16 @@ class LayersFromComposer:
         for map_ in maps:
             if map_.keepLayerSet():
                 self.dlg.comboBox_2.addItem(map_.displayName(), map_.id())
+                
+    def enable_style_check(self):
+        """ checks if styles are locked and enables the checkbox """
+        composition = self.getSelectedComposition()
+        if composition:
+            theMap = self.getSelectedMap()
+            if theMap and theMap.keepLayerStyles():
+                self.dlg.checkBox.setEnabled(True)
+            else:
+                self.dlg.checkBox.setEnabled(False)
                   
             
     def getSelectedComposition(self):
@@ -218,7 +230,14 @@ class LayersFromComposer:
         for composer in self.iface.activeComposers():
             if composer.composerWindow().windowTitle() == name:
                 return composer.composition()
-
+                
+    def getSelectedMap(self):
+        composition = self.getSelectedComposition()
+        if composition:
+            mapId= self.dlg.comboBox_2.itemData(self.dlg.comboBox_2.currentIndex())
+            if mapId is not None:
+                theMap = composition.getComposerMapById(mapId)
+                return theMap
 
     def run(self):
         """Run method that performs all the real work"""
@@ -229,14 +248,11 @@ class LayersFromComposer:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            mapId= self.dlg.comboBox_2.itemData(self.dlg.comboBox_2.currentIndex())
-            theMap = self.getSelectedComposition().getComposerMapById(mapId)
+            theMap = self.getSelectedMap()
             layers = theMap.layerSet()
-            QgsMessageLog.logMessage(str(layers), level=QgsMessageLog.INFO)
             
             # check if some layers do not exist in legend and warns
             for compLyr in layers:
-                QgsMessageLog.logMessage(compLyr, level=QgsMessageLog.INFO)
                 if not QgsMapLayerRegistry.instance().mapLayers().has_key(compLyr):
                     ret = QMessageBox.warning(self, self.tr("Layers frm composer"),
                         self.tr("Some of the layers registered in the composer " + \
@@ -247,7 +263,15 @@ class LayersFromComposer:
                     break
             
             for lyr in self.iface.legendInterface().layers():
+                # set styles
+                if (lyr.id() in layers) and self.dlg.checkBox.isChecked() and theMap.keepLayerStyles():
+                    style = theMap.layerStyleOverrides()[lyr.id()]
+                    doc = QDomDocument()
+                    # error = None
+                    doc.setContent(style.encode('utf-8'))
+                    res, error = lyr.importNamedStyle(doc)
+                    if error:
+                        QgsMessageLog.logMessage(self.tr("Error in setting layer style for ") + lyr.id() + ': ' + error, level=QgsMessageLog.ERROR)
+                    
                 self.iface.legendInterface().setLayerVisible(lyr, lyr.id() in layers)
 
-                   
-# TODO: allow choice for style updating
