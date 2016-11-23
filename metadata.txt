@@ -1,0 +1,39 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=Restore layers from composer
+qgisMinimumVersion=2.0
+description=For a composer with locked layers, will set activated layers and styles in the main canvas accordingly
+version=0.1
+author=A. Roche
+email=aroche@photoherbarium.fr
+
+about=When you have locked layers in a composer, and sometimes locked styles, you can set the layer states of the mane canvas accondingly to the composer. This is useful when you want to make small changes in the layers of the composer.
+
+tracker=https://github.com/aroche/LayersFromComposer/issues
+repository=https://github.com/aroche/LayersFromComposer
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=layers composer styles
+
+homepage=https://github.com/aroche/LayersFromComposer
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=True
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
