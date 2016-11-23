@@ -170,7 +170,7 @@ class LayersFromComposer:
         icon_path = ':/plugins/LayersFromComposer/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u''),
+            text=self.tr(u'Restore layer visibility from composer'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -267,7 +267,6 @@ class LayersFromComposer:
                 if (lyr.id() in layers) and self.dlg.checkBox.isChecked() and theMap.keepLayerStyles():
                     style = theMap.layerStyleOverrides()[lyr.id()]
                     doc = QDomDocument()
-                    # error = None
                     doc.setContent(style.encode('utf-8'))
                     res, error = lyr.importNamedStyle(doc)
                     if error:

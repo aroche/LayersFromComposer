@@ -8,13 +8,13 @@
 
 [general]
 name=Restore layers from composer
-qgisMinimumVersion=2.0
+qgisMinimumVersion=2.8
 description=For a composer with locked layers, will set activated layers and styles in the main canvas accordingly
 version=0.1
 author=A. Roche
 email=aroche@photoherbarium.fr
 
-about=When you have locked layers in a composer, and sometimes locked styles, you can set the layer states of the mane canvas accondingly to the composer. This is useful when you want to make small changes in the layers of the composer.
+about=When you have locked layers in a composer, and sometimes locked styles, you can set the layer states of the main canvas accordingly to the composer. This restores the visibility and styles of layers in the same state as the layers in the selected composer.
 
 tracker=https://github.com/aroche/LayersFromComposer/issues
 repository=https://github.com/aroche/LayersFromComposer
