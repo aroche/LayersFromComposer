@@ -27,7 +27,7 @@ import resources
 # Import the code for the dialog
 from layers_from_composer_dialog import LayersFromComposerDialog
 import os.path
-from qgis.core import QgsMessageLog
+from qgis.core import QgsMessageLog, QgsMapLayerRegistry
 
 
 class LayersFromComposer:
@@ -196,13 +196,13 @@ class LayersFromComposer:
                 continue
             hasLockedLayers = False
             for theMap in maps:
-                hasLockedLayers = hasLockedLayers or theMap.keepLayerSet()
+                hasLockedLayers = hasLockedLayers or (theMap.keepLayerSet() and len(theMap.layerSet()) > 0)
             if hasLockedLayers:
                 self.dlg.comboBox.insertItem(i, composer.composerWindow().windowTitle())
                 
     def populate_maps(self):
         """ Gets the maps for the selected composer and populates second combobox """
-        composition = self.getSelectedComposer().composition()
+        composition = self.getSelectedComposition()
         if composition is None:
             return
         maps = composition.composerMapItems()
@@ -212,11 +212,12 @@ class LayersFromComposer:
                 self.dlg.comboBox_2.addItem(map_.displayName(), map_.id())
                   
             
-    def getSelectedComposer(self):
+    def getSelectedComposition(self):
+        """ returns the composition corresponding to selected composer """
         name = self.dlg.comboBox.currentText()
         for composer in self.iface.activeComposers():
             if composer.composerWindow().windowTitle() == name:
-                return composer
+                return composer.composition()
 
 
     def run(self):
@@ -229,8 +230,22 @@ class LayersFromComposer:
         # See if OK was pressed
         if result:
             mapId= self.dlg.comboBox_2.itemData(self.dlg.comboBox_2.currentIndex())
-            theMap = self.getSelectedComposer().composition().getComposerMapById(mapId)
+            theMap = self.getSelectedComposition().getComposerMapById(mapId)
             layers = theMap.layerSet()
+            QgsMessageLog.logMessage(str(layers), level=QgsMessageLog.INFO)
+            
+            # check if some layers do not exist in legend and warns
+            for compLyr in layers:
+                QgsMessageLog.logMessage(compLyr, level=QgsMessageLog.INFO)
+                if not QgsMapLayerRegistry.instance().mapLayers().has_key(compLyr):
+                    ret = QMessageBox.warning(self, self.tr("Layers frm composer"),
+                        self.tr("Some of the layers registered in the composer " + \
+                        "do not exist anymore in the project.\nDo you want to continue?"),
+                        QMessageBox.Yes | QMessageBox.No)
+                    if not ret:
+                        return
+                    break
+            
             for lyr in self.iface.legendInterface().layers():
                 self.iface.legendInterface().setLayerVisible(lyr, lyr.id() in layers)
 
