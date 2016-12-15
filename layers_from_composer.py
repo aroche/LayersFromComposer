@@ -21,7 +21,7 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon, QMessageBox
+from PyQt4.QtGui import QAction, QIcon, QMessageBox, QDialogButtonBox
 from PyQt4.QtXml import QDomDocument
 # Initialize Qt resources from file resources.py
 import resources
@@ -136,7 +136,7 @@ class LayersFromComposer:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = LayersFromComposerDialog()
-        
+
         # signals
         self.dlg.comboBox.currentIndexChanged.connect(self.populate_maps)
         self.dlg.comboBox_2.currentIndexChanged.connect(self.enable_style_check)
@@ -184,13 +184,15 @@ class LayersFromComposer:
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
         del self.toolbar
-        
-        
+
+
     def populate_composers(self):
         """ Populates the first comboBox with eligiblecomposer names
             Filters out the composers with no maps with locked layers """
         self.dlg.comboBox.clear()
         self.dlg.comboBox_2.clear()
+        self.dlg.warningLabel.setText("")
+        n = 0
         for i, composer in enumerate(self.iface.activeComposers()):
             composition = composer.composition()
             maps = composition.composerMapItems()
@@ -200,8 +202,15 @@ class LayersFromComposer:
             for theMap in maps:
                 hasLockedLayers = hasLockedLayers or (theMap.keepLayerSet() and len(theMap.layerSet()) > 0)
             if hasLockedLayers:
+                n += 1
                 self.dlg.comboBox.insertItem(i, composer.composerWindow().windowTitle())
-                
+
+        if n == 0: # no composer with locked layers
+            self.dlg.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
+            self.dlg.warningLabel.setText(self.tr("No composer with locked layers found"))
+        else:
+            self.dlg.button_box.button(QDialogButtonBox.Ok).setEnabled(True)
+
     def populate_maps(self):
         """ Gets the maps for the selected composer and populates second combobox """
         composition = self.getSelectedComposition()
@@ -212,7 +221,7 @@ class LayersFromComposer:
         for map_ in maps:
             if map_.keepLayerSet():
                 self.dlg.comboBox_2.addItem(map_.displayName(), map_.id())
-                
+
     def enable_style_check(self):
         """ checks if styles are locked and enables the checkbox """
         composition = self.getSelectedComposition()
@@ -222,15 +231,15 @@ class LayersFromComposer:
                 self.dlg.checkBox.setEnabled(True)
             else:
                 self.dlg.checkBox.setEnabled(False)
-                  
-            
+
+
     def getSelectedComposition(self):
         """ returns the composition corresponding to selected composer """
         name = self.dlg.comboBox.currentText()
         for composer in self.iface.activeComposers():
             if composer.composerWindow().windowTitle() == name:
                 return composer.composition()
-                
+
     def getSelectedMap(self):
         composition = self.getSelectedComposition()
         if composition:
@@ -250,18 +259,18 @@ class LayersFromComposer:
         if result:
             theMap = self.getSelectedMap()
             layers = theMap.layerSet()
-            
+
             # check if some layers do not exist in legend and warns
             for compLyr in layers:
                 if not QgsMapLayerRegistry.instance().mapLayers().has_key(compLyr):
-                    ret = QMessageBox.warning(self, self.tr("Layers frm composer"),
+                    ret = QMessageBox.warning(self, self.tr("Layers from composer"),
                         self.tr("Some of the layers registered in the composer " + \
                         "do not exist anymore in the project.\nDo you want to continue?"),
                         QMessageBox.Yes | QMessageBox.No)
                     if not ret:
                         return
                     break
-            
+
             for lyr in self.iface.legendInterface().layers():
                 # set styles
                 if (lyr.id() in layers) and self.dlg.checkBox.isChecked() and theMap.keepLayerStyles():
@@ -271,6 +280,5 @@ class LayersFromComposer:
                     res, error = lyr.importNamedStyle(doc)
                     if error:
                         QgsMessageLog.logMessage(self.tr("Error in setting layer style for ") + lyr.id() + ': ' + error, level=QgsMessageLog.ERROR)
-                    
-                self.iface.legendInterface().setLayerVisible(lyr, lyr.id() in layers)
 
+                self.iface.legendInterface().setLayerVisible(lyr, lyr.id() in layers)
